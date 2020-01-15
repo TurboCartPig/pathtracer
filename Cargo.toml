@@ -1,0 +1,26 @@
+[package]
+name = "pathtracer"
+version = "0.1.0"
+authors = ["Dennis Kristiansen <dennkris@live.no>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+glutin = "0.22.0-alpha5"
+image = "0.22.0"
+glam = "0.8.4"
+rand = "0.7.2"
+rand_distr = "0.2.2"
+rand_xoshiro = "0.4.0"
+lazy_static = "1.4.0"
+rayon = "1.2.1"
+enum_dispatch = "0.2.0"
+
+[build-dependencies]
+failure = "0.1.6"
+gl_generator = "0.14.0"
+
+[profile.dev]
+opt-level = 3
+debug = true
