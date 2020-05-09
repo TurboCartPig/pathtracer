@@ -21,4 +21,3 @@ Based on [Ray Tracing in a Weekend](https://in1weekend.blogspot.com/2016/01/ray-
 
 ![Blurry Mess](https://github.com/turbocartpig/pathtracer/blob/master/screenshots/blurry_mess.png)
 ![Small Spheres](https://github.com/turbocartpig/pathtracer/blob/master/screenshots/small_spheres.png)
-![Cover Photos](https://github.com/turbocartpig/pathtracer/blob/master/screenshots/cover_photo.png)
