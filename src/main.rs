@@ -20,12 +20,11 @@ use std::{
     sync::Arc,
     path::PathBuf,
 };
-use enum_dispatch::enum_dispatch;
 
 static MAX_BOUNCES: u32 = 128;
 static WIDTH: u32 = 1920;
 static HEIGHT: u32 = 1080;
-static SAMPLES: usize = 128;
+static SAMPLES: usize = 32;
 static COLOR_CHANNELS: u32 = 3;
 static GAMMA: f32 = 2.2;
 
@@ -55,8 +54,7 @@ impl Ray {
 }
 
 // Computes whether a ray intersects the implementor
-#[enum_dispatch]
-pub trait Intersect: Send {
+pub trait Intersect: Send + Sync {
     fn intersection(&self, ray: Ray, t_min: f32, t_max: f32) -> Option<Hit>;
     fn has_intersection(&self, ray: Ray, t_min: f32, t_max: f32) -> bool;
     fn bounds(&self) -> Option<AABB>;
@@ -68,7 +66,7 @@ pub struct Hit {
     pub t: f32,
     pub point: Vec3,
     pub normal: Vec3,
-    pub material: Option<Arc<dyn Material + Send + Sync>>,
+    pub material: Option<Arc<dyn Material>>,
 }
 
 // Computes the color of a pixel/sample based on a ray
@@ -114,10 +112,10 @@ fn random() -> Vec<Instance> {
 
     // The big sphere
     let material = Arc::new(Lambertian::new(vec3(0.5, 0.5, 0.5)));
-    let primitive = Arc::new(Sphere::new(vec3(0.0, -1000.0, 0.0), 1000.0).into());
+    let primitive = Arc::new(Sphere::new(vec3(0.0, -1000.0, 0.0), 1000.0));
     instances.push(Instance::reciver(primitive, material, transform));
 
-    let primitive: Arc<Primitives> = Arc::new(Sphere::new(Vec3::zero(), 0.2).into());
+    let primitive = Arc::new(Sphere::new(Vec3::zero(), 0.2));
     for a in -12..12 {
         for b in -12..12 {
             let material = rng.gen::<f32>();
@@ -144,22 +142,22 @@ fn random() -> Vec<Instance> {
                 } else {
                     Arc::new(Dielectric::new(1.5))
                 };
-                let transform = Transform { translation: center, scale: Vec3::one(), };
+                let transform = Transform { translation: center, ..Default::default() };
                 instances.push(Instance::reciver(primitive.clone(), material, transform));
             }
         }
     }
 
     let material = Arc::new(Lambertian::new(vec3(0.6, 0.2, 0.9)));
-    let primitive = Arc::new(Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0).into());
+    let primitive = Arc::new(Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0));
     instances.push(Instance::reciver(primitive, material, transform));
 
     let material = Arc::new(Dielectric::new(1.5));
-    let primitive = Arc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0).into());
+    let primitive = Arc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0));
     instances.push(Instance::reciver(primitive, material, transform));
 
     let material = Arc::new(Metal::new(vec3(0.7, 0.6, 0.5), 0.0));
-    let primitive = Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0).into());
+    let primitive = Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0));
     instances.push(Instance::reciver(primitive, material, transform));
 
     instances
@@ -238,13 +236,13 @@ fn trace() -> Vec<u8> {
         duration, global_ray_count, rays_per_second
     );
 
-    image::save_buffer("output.png", &buffer, WIDTH, HEIGHT, image::RGB(8)).unwrap();
+    save_image(&buffer);
 
     buffer
 }
 
 fn save_image(image: &[u8]) {
-    image::save_buffer("output.png", image, WIDTH, HEIGHT, image::ColorType::RGB(8)).unwrap();
+    image::save_buffer("output.png", image, WIDTH, HEIGHT, image::ColorType::Rgb8).unwrap();
 }
 
 /// The user event given to glutin
@@ -255,12 +253,16 @@ pub enum PathtracerEvent {
 
 fn redraw(gl: &Gl) {
     unsafe {
-        gl.ClearColor(1.0, 1.0, 1.0, 1.0);
+        gl.ClearColor(1.0, 0.0, 1.0, 1.0);
+        gl.Clear(gl::COLOR_BUFFER_BIT);
         gl.DrawArrays(gl::TRIANGLES, 0, 4);
     }
 }
 
 fn main() {
+    let image = trace();
+    save_image(&image);
+
     let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let event_loop = EventLoop::with_user_event();
     let context = ContextBuilder::new()
@@ -277,18 +279,19 @@ fn main() {
     let context = unsafe { context.make_current().unwrap() };
     let gl = Gl::load_with(|name| context.get_proc_address(name) as *const _);
 
-    let image = trace();
-
     unsafe {
         let mut tex = 0;
         gl.GenTextures(1, &mut tex);
         gl.BindTexture(gl::TEXTURE_2D, tex);
+        gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as i32, WIDTH as i32, HEIGHT as i32, 0, gl::RGB, gl::UNSIGNED_BYTE, image.as_ptr() as _);
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_BORDER as i32);
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_BORDER as i32);
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-        // gl.TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as i32, WIDTH as i32, HEIGHT as i32, 0, gl::RGB, gl::FLOAT, image.as_ptr() as _);
-        // FIXME^: STATUS_ACCESS_VIOLATION
+
+        let mut vao = 0;
+        gl.GenVertexArrays(1, &mut vao);
+        gl.BindVertexArray(vao);
 
         let vertices = vec![
             -1.0,  1.0,
@@ -318,10 +321,18 @@ fn main() {
         gl.ShaderSource(vert_shader, 1, &vert_source.as_ptr(), std::ptr::null());
         gl.CompileShader(vert_shader);
 
+        let mut status = 0;
+        gl.GetShaderiv(vert_shader, gl::COMPILE_STATUS, &mut status);
+        println!("Shader compilation status: {}", status);
+
         let frag_shader = gl.CreateShader(gl::FRAGMENT_SHADER);
         let frag_source = load(root_dir.join("resources\\shaders\\present.frag"));
         gl.ShaderSource(frag_shader, 1, &frag_source.as_ptr(), std::ptr::null());
         gl.CompileShader(frag_shader);
+
+        let mut status = 0;
+        gl.GetShaderiv(frag_shader, gl::COMPILE_STATUS, &mut status);
+        println!("Shader compilation status: {}", status);
 
         let shader_program = gl.CreateProgram();
         gl.AttachShader(shader_program, vert_shader);
@@ -332,9 +343,12 @@ fn main() {
         gl.LinkProgram(shader_program);
         gl.UseProgram(shader_program);
 
-        let pos_attrib = gl.GetAttribLocation(shader_program, "position".as_ptr() as _) as u32;
-        gl.VertexAttribPointer(pos_attrib, 2, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
+        let pos_attrib = gl.GetAttribLocation(shader_program, b"position\0".as_ptr() as _) as u32;
         gl.EnableVertexAttribArray(pos_attrib);
+        gl.VertexAttribPointer(pos_attrib, 2, gl::FLOAT, gl::FALSE, 2 * std::mem::size_of::<f32>() as i32, std::ptr::null());
+
+        // let tex_coord_attrib = gl.GetAttribLocation(shader_program, "tex_coord".as_ptr() as _) as u32;
+        // gl.VertexAttribPointer(tex_coord_attrib, 3, gl::UNSIGNED_BYTE, gl::FALSE, 4 * std::mem::size_of::<f32>() as i32, (2 * std::mem::size_of::<f32>() as i32) as _);
 
         redraw(&gl);
     }
@@ -344,9 +358,9 @@ fn main() {
         match event {
             Event::LoopDestroyed => return,
             Event::WindowEvent { ref event, .. } => match event {
-                WindowEvent::Resized(_size) => {
-                    redraw(&gl);
-                },
+                // WindowEvent::Resized(_size) => {
+                //     redraw(&gl);
+                // },
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 _ => (),
             },
@@ -357,11 +371,16 @@ fn main() {
                 },
                 _ => (),
             },
-            Event::UserEvent(ref event) => match event {
-                PathtracerEvent::Redraw => {
-                    redraw(&gl);
-                },
-            },
+            Event::RedrawRequested(_) => {
+                redraw(&gl);
+                context.swap_buffers().unwrap();
+                println!("Hei");
+            }
+            // Event::UserEvent(ref event) => match event {
+            //     PathtracerEvent::Redraw => {
+            //         redraw(&gl);
+            //     },
+            // },
             _ => (),
         }
     });

@@ -1,7 +1,7 @@
-use gl_generator::{Api, Fallbacks, StructGenerator, Profile, Registry};
+use gl_generator::{Api, Fallbacks, Profile, Registry, StructGenerator};
 use std::{env, fs::File, path::PathBuf};
 
-fn main() -> Result<(), failure::Error> {
+fn main() -> Result<(), anyhow::Error> {
     let dir = env::var("OUT_DIR")?;
     let mut file = File::create(&PathBuf::from(&dir).join("gl_bindings.rs"))?;
 

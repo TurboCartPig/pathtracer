@@ -40,17 +40,7 @@ pub struct ScatterResult {
     pub attenuation: Vec3,
 }
 
-use enum_dispatch::enum_dispatch;
-
-#[enum_dispatch]
-pub enum Materials {
-    Lambertian,
-    Metal,
-    Dielectric,
-}
-
-#[enum_dispatch]
-pub trait Material: std::fmt::Debug {
+pub trait Material: std::fmt::Debug + Send + Sync {
     fn scatter(&self, ray: Ray, hit: Hit, rng: &mut DefaultRng) -> Option<ScatterResult>;
 }
 
