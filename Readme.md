@@ -11,7 +11,7 @@ Based on [Ray Tracing in a Weekend](https://in1weekend.blogspot.com/2016/01/ray-
 - [X] Materials (Lambertian, Metal, Dielectric)
 - [X] Camera (with apeture and fucus distance)
 - [X] Multithreading (via Rayon ParallelIterator)
-- [-] Instancing
+- [ ] Instancing (WIP)
 - [ ] Argument parsing
 - [ ] Online viewer
 - [ ] GPU Acceleration
