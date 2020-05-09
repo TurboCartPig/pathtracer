@@ -8,9 +8,10 @@ Based on [Ray Tracing in a Weekend](https://in1weekend.blogspot.com/2016/01/ray-
 
 ### Features
 
-- [x] Materials (Lambertian, Metal, Dielectric)
-- [x] Camera (with apeture and fucus distance)
-- [x] Multithreading (via Rayon ParallelIterator)
+- [X] Materials (Lambertian, Metal, Dielectric)
+- [X] Camera (with apeture and fucus distance)
+- [X] Multithreading (via Rayon ParallelIterator)
+- [-] Instancing
 - [ ] Argument parsing
 - [ ] Online viewer
 - [ ] GPU Acceleration
@@ -19,3 +20,5 @@ Based on [Ray Tracing in a Weekend](https://in1weekend.blogspot.com/2016/01/ray-
 ### Gallery
 
 ![Blurry Mess](https://github.com/turbocartpig/pathtracer/blob/master/screenshots/blurry_mess.png)
+![Small Spheres](https://github.com/turbocartpig/pathtracer/blob/master/screenshots/small_spheres.png)
+![Cover Photos](https://github.com/turbocartpig/pathtracer/blob/master/screenshots/cover_photo.png)
