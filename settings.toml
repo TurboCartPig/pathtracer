@@ -1,0 +1,4 @@
+resolution = [1280, 720]
+samples = 16
+max_bounces = 16
+gamma = 2.2

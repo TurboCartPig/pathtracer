@@ -2,6 +2,7 @@ use crate::{material::sample_unit_sphere, DefaultRng, Ray};
 use glam::Vec3;
 use std::f32::consts::PI;
 
+#[derive(Debug)]
 pub struct Camera {
     origin: Vec3,
     lower_left_corner: Vec3,
@@ -9,7 +10,6 @@ pub struct Camera {
     vertical: Vec3,
     u: Vec3,
     v: Vec3,
-    // w: Vec3,
     lens_radius: f32,
 }
 
@@ -35,7 +35,6 @@ impl Camera {
             vertical,
             u,
             v,
-            // w,
             lens_radius,
         }
     }
