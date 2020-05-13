@@ -1,5 +1,5 @@
 use crate::{material::Material, primitives::AABB, Hit, Intersect, Ray};
-use glam::{Vec3, Quat};
+use glam::{Quat, Vec3};
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Default)]
@@ -9,9 +9,7 @@ pub struct Transform {
     pub scale: Vec3,
 }
 
-impl Transform {
-
-}
+impl Transform {}
 
 #[derive(Clone)]
 pub enum Instance {
@@ -58,7 +56,11 @@ impl Intersect for Instance {
 
     fn has_intersection(&self, ray: Ray, t_min: f32, t_max: f32) -> bool {
         match self {
-            Instance::Reciver { primitive, transform, .. } => {
+            Instance::Reciver {
+                primitive,
+                transform,
+                ..
+            } => {
                 let ray = Ray::new(ray.origin - transform.translation, ray.direction);
                 primitive.has_intersection(ray, t_min, t_max)
             }
@@ -67,14 +69,16 @@ impl Intersect for Instance {
 
     fn bounds(&self) -> Option<AABB> {
         match self {
-            Instance::Reciver { primitive, transform, .. } => {
-                primitive.bounds().map(|mut b| {
-                    b.min += transform.translation;
-                    b.max += transform.translation;
+            Instance::Reciver {
+                primitive,
+                transform,
+                ..
+            } => primitive.bounds().map(|mut b| {
+                b.min += transform.translation;
+                b.max += transform.translation;
 
-                    b
-                })
-            }
+                b
+            }),
         }
     }
 }

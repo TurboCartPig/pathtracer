@@ -1,4 +1,7 @@
-use crate::{primitives::{AABB, Instance}, Hit, Intersect, Ray};
+use crate::{
+    primitives::{Instance, AABB},
+    Hit, Intersect, Ray,
+};
 use glam::Vec3;
 
 #[derive(Clone, Copy, Debug)]
