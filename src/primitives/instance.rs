@@ -9,8 +9,6 @@ pub struct Transform {
     pub scale: Vec3,
 }
 
-impl Transform {}
-
 #[derive(Clone)]
 pub enum Instance {
     Reciver {
@@ -18,7 +16,7 @@ pub enum Instance {
         material: Arc<dyn Material>,
         transform: Transform,
     },
-    // Emitter {}
+    // Emitter {},
 }
 
 impl Instance {
@@ -44,10 +42,14 @@ impl Intersect for Instance {
                 material,
                 transform,
             } => {
-                let ray = Ray::new(ray.origin - transform.translation, ray.direction);
+                let ray = Ray::new(
+                    ray.origin - transform.translation,
+                    transform.rotation * ray.direction,
+                );
                 primitive.intersection(ray, t_min, t_max).map(|mut hit| {
                     hit.material = Some(material.clone());
                     hit.point += transform.translation;
+                    // hit.point = transform.rotation * hit.point;
                     hit
                 })
             }
@@ -61,7 +63,11 @@ impl Intersect for Instance {
                 transform,
                 ..
             } => {
-                let ray = Ray::new(ray.origin - transform.translation, ray.direction);
+                let ray = Ray::new(
+                    ray.origin - transform.translation,
+                    // transform.rotation * ray.direction,
+                    ray.direction,
+                );
                 primitive.has_intersection(ray, t_min, t_max)
             }
         }
