@@ -1,11 +1,13 @@
 use crate::{
     bvh::BVH, camera::Camera, color, material::Material, primitives::Instance, DefaultRng,
-    SettingsConfig, COLOR_CHANNELS,
+    SettingsConfig,
 };
 use glam::{vec3, Vec3};
 use image::{save_buffer, ColorType};
+use itertools::iproduct;
 use rand::prelude::*;
 use rayon::prelude::*;
+use smallvec::*;
 use std::{collections::HashMap, sync::Arc};
 
 /// Traced image
@@ -15,10 +17,17 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(width: u32, height: u32) -> Self {
+    // pub fn new(width: u32, height: u32) -> Self {
+    //     Self {
+    //         dimensions: (width, height),
+    //         buffer: vec![0u8; (width * height * 3) as usize],
+    //     }
+    // }
+
+    pub fn from(buffer: Vec<u8>, width: u32, height: u32) -> Self {
         Self {
             dimensions: (width, height),
-            buffer: vec![0u8; (width * height * COLOR_CHANNELS) as usize],
+            buffer,
         }
     }
 
@@ -78,73 +87,95 @@ impl Scene {
     }
 
     pub fn trace(&self) -> Image {
-        let global_ray_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
         let start = std::time::Instant::now();
-        let mut image = Image::new(self.settings.width(), self.settings.height());
 
-        image
-            .buffer
-            .par_chunks_mut((self.settings.width() * COLOR_CHANNELS) as usize)
-            .rev()
-            .enumerate()
-            .for_each(|(y, row)| {
-                let mut rng = DefaultRng::from_entropy();
-                row.chunks_mut(COLOR_CHANNELS as usize)
-                    .enumerate()
-                    .for_each(|(i, pixel)| {
-                        let mut out = Vec3::zero();
-                        let mut ray_count = 0;
+        // Cartesian product
+        let pixels: Vec<_> =
+            iproduct!(0..self.settings.width(), 0..self.settings.height()).collect();
 
-                        // Antialiasing via multisampling
-                        for _ in 0..self.settings.samples {
-                            let u = (rng.gen::<f32>() + i as f32) / self.settings.width() as f32;
-                            let v = (rng.gen::<f32>() + y as f32) / self.settings.height() as f32;
+        // Main pathtracing
+        let (global_ray_count, mut pixels): (Vec<u32>, Vec<_>) = pixels
+            .into_par_iter()
+            .map_with(DefaultRng::from_entropy(), |mut rng, (x, y)| {
+                let mut pixel = Vec3::zero();
+                let mut ray_count = 0;
 
-                            let ray = self.camera.ray(u, v, &mut rng);
+                // Antialiasing via multisampling
+                for _ in 0..self.settings.samples {
+                    let u = (rng.gen::<f32>() + x as f32) / self.settings.width() as f32;
+                    let v = (rng.gen::<f32>() + y as f32) / self.settings.height() as f32;
 
-                            let mut instance_ray_count = 1;
-                            out += color(
-                                ray,
-                                &mut instance_ray_count,
-                                &self.bvh,
-                                &mut rng,
-                                self.settings.max_bounces,
-                            );
-                            ray_count += instance_ray_count;
-                        }
+                    let ray = self.camera.ray(u, v, &mut rng);
 
-                        out /= self.settings.samples as f32;
+                    let mut instance_ray_count = 0;
+                    pixel += color(
+                        ray,
+                        &mut instance_ray_count,
+                        &self.bvh,
+                        &mut rng,
+                        self.settings.max_bounces,
+                    );
+                    ray_count += instance_ray_count;
+                }
 
-                        // Gamma correct
-                        out = Vec3::new(
-                            out.x().powf(1.0 / self.settings.gamma),
-                            out.y().powf(1.0 / self.settings.gamma),
-                            out.z().powf(1.0 / self.settings.gamma),
-                        );
+                // Normalize over samples
+                pixel /= self.settings.samples as f32;
 
-                        // Convert from [0, 1] to [0, 256]
-                        let r = (255.99 * out.x()) as u8;
-                        let g = (255.99 * out.y()) as u8;
-                        let b = (255.99 * out.z()) as u8;
+                // Gamma correct
+                pixel = Vec3::new(
+                    pixel.x().powf(1.0 / self.settings.gamma),
+                    pixel.y().powf(1.0 / self.settings.gamma),
+                    pixel.z().powf(1.0 / self.settings.gamma),
+                );
 
-                        // Write output color to buffer
-                        pixel[0] = r;
-                        pixel[1] = g;
-                        pixel[2] = b;
+                // Convert from [0, 1] to [0, 256]
+                let pixel = 255.99 * pixel;
 
-                        global_ray_count.fetch_add(ray_count, std::sync::atomic::Ordering::Relaxed);
-                    })
-            });
+                (ray_count, ((x, y), pixel))
+            })
+            .unzip();
+
+        // Add up all the ray counts
+        let global_ray_count: u32 = global_ray_count.into_iter().sum();
+
+        // Sort the pixels
+        pixels.sort_unstable_by(|((x1, y1), _), ((x2, y2), _)| {
+            let a = (self.settings.height() - y1) * self.settings.width() + x1;
+            let b = (self.settings.height() - y2) * self.settings.width() + x2;
+
+            Ord::cmp(&a, &b)
+        });
+
+        // Reinterperate the pixels into expected image format
+        let pixels: Vec<_> = pixels
+            .into_iter()
+            .flat_map(|(_, pixel)| {
+                let p: SmallVec<[u8; 3]> =
+                    smallvec![pixel.x() as u8, pixel.y() as u8, pixel.z() as u8];
+                p
+            })
+            .collect();
+
+        let image = Image::from(pixels, self.settings.width(), self.settings.height());
 
         let finished = std::time::Instant::now();
         let duration = finished.duration_since(start);
-        let global_ray_count =
-            f64::from(global_ray_count.load(std::sync::atomic::Ordering::Relaxed)) / 1_000_000.0;
-        let rays_per_second = global_ray_count
+
+        let global_ray_count = global_ray_count / 1_000_000;
+        let rays_per_second = global_ray_count as f64
             / (duration.as_secs() as f64 + f64::from(duration.subsec_nanos()) / 1_000_000_000.0);
         println!(
             "Time elapsed: {:.2?}\nTotal Rays: {:.2}M\nRays per second: {:.2}M",
             duration, global_ray_count, rays_per_second
+        );
+
+        let min_estimated_total_rays =
+            self.settings.width() * self.settings.height() * self.settings.samples;
+        let max_estimated_total_rays = min_estimated_total_rays * self.settings.max_bounces;
+        println!(
+            "Minimum estimated total rays: {:.2}M\nMaximum estimated total rays: {:.2}M",
+            min_estimated_total_rays / 1_000_000,
+            max_estimated_total_rays / 1_000_000
         );
 
         image

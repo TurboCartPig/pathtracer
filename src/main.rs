@@ -20,11 +20,8 @@ use serde::Deserialize;
 use std::io::Read;
 use std::sync::Arc;
 
-/// Number of color channels to be used per pixel
-static COLOR_CHANNELS: u32 = 3;
-
 /// Default random number generator to be used
-type DefaultRng = rand_xoshiro::Xoshiro256Plus;
+type DefaultRng = rand_xoshiro::Xoshiro256PlusPlus;
 
 /// Specifies settings used in the pathtracing
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -77,9 +74,10 @@ fn color(ray: Ray, bounces: &mut u32, bvh: &BVH, rng: &mut DefaultRng, max_bounc
                 *bounces += 1;
                 scatter.attenuation * color(scatter.scattered, bounces, bvh, rng, max_bounces)
             })
-            .unwrap_or(Vec3::zero())
-    } else {
-        // Else draw the background/skybox
+            .unwrap_or_else(Vec3::zero)
+    }
+    // Else draw the background/skybox
+    else {
         let dir = ray.direction.normalize();
         let t = 0.5 * (dir.y() + 1.0);
         (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0)
@@ -92,7 +90,12 @@ fn random() -> Vec<Instance> {
     let mut rng = rand::thread_rng();
     let mut instances = Vec::new();
 
-    let transform = Transform::default();
+    // let transform = Transform::default();
+    // let transform = Transform {
+    //     rotation: glam::Quat::from_rotation_x(3.0),
+    //     ..Default::default()
+    // };
+    let transform = Default::default();
 
     // The big sphere
     let material = Arc::new(Lambertian::new(vec3(0.5, 0.5, 0.5)));
@@ -176,11 +179,13 @@ fn load_settings() -> anyhow::Result<SettingsConfig> {
 
 fn main() {
     // Load in settings
-    let settings: SettingsConfig = load_settings().unwrap_or(Default::default());
+    let settings: SettingsConfig = load_settings().unwrap_or_default();
 
     let scene = Scene::new(settings, random());
     let image = scene.trace();
-    image.save("output.png").unwrap();
+    image
+        .save("output.png")
+        .expect("Failed to save output image");
 
     // TODO: Fix opengl previewer
     // *******************************************************************
