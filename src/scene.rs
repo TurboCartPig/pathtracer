@@ -130,7 +130,6 @@ impl Scene {
 
                 // Convert from [0, 1] to [0, 255]
                 let pixel = 254.99 * pixel;
-                debug_assert!(pixel.length() <= f32::sqrt(3.0));
 
                 (ray_count, ((x, y), pixel))
             })
