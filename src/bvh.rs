@@ -3,6 +3,8 @@ use crate::{
     Hit, Intersect, Ray,
 };
 use glam::Vec3;
+use rayon::prelude::*;
+use smallvec::*;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Axis {
@@ -49,7 +51,7 @@ impl BVH {
         let mut index_to_geometry = Vec::new();
         // Precompute build info about the geometry
         let mut build_geomentry = geometry
-            .iter()
+            .par_iter()
             .enumerate()
             .map(|(index, geom)| {
                 let bounds = geom.bounds().unwrap();
@@ -79,8 +81,6 @@ impl BVH {
             .map(|i| geometry.get(i).unwrap())
             .cloned()
             .collect();
-
-        // geometry.sort_unstable_by_key(|_| index_to_geometry.get(index???));
 
         println!("Total Nodes Built: {}", total_nodes);
 
@@ -127,30 +127,32 @@ impl BVH {
             }
         }
 
-        let mut cost = [0.0; 11];
-        for (i, c) in cost.iter_mut().enumerate() {
-            let left = buckets
-                .iter()
-                .take(i + 1)
-                .fold(SAHBucket::default(), |mut a, b| {
-                    a.bounds = a.bounds.union(b.bounds);
-                    a.count += b.count;
-                    a
-                });
-            let right = buckets
-                .iter()
-                .skip(i + 1)
-                .fold(SAHBucket::default(), |mut a, b| {
-                    a.bounds = a.bounds.union(b.bounds);
-                    a.count += b.count;
-                    a
-                });
+        let cost: Vec<_> = (0usize..11)
+            .into_par_iter()
+            .map(|i| {
+                let left = buckets
+                    .iter()
+                    .take(i + 1)
+                    .fold(SAHBucket::default(), |mut a, b| {
+                        a.bounds = a.bounds.union(b.bounds);
+                        a.count += b.count;
+                        a
+                    });
+                let right = buckets
+                    .iter()
+                    .skip(i + 1)
+                    .fold(SAHBucket::default(), |mut a, b| {
+                        a.bounds = a.bounds.union(b.bounds);
+                        a.count += b.count;
+                        a
+                    });
 
-            *c = 0.125
-                + (left.count as f32 * left.bounds.surface_area()
-                    + right.count as f32 * right.bounds.surface_area())
-                    / bounds.surface_area();
-        }
+                0.125
+                    + (left.count as f32 * left.bounds.surface_area()
+                        + right.count as f32 * right.bounds.surface_area())
+                        / bounds.surface_area()
+            })
+            .collect();
 
         let (min_bucket, min_cost) =
             cost.iter()
@@ -176,7 +178,7 @@ impl BVH {
                 b <= min_bucket
             };
 
-            geometry.sort_unstable_by_key(func);
+            geometry.par_sort_unstable_by_key(func);
             mid = geometry.iter().position(func).unwrap_or(geometry.len() / 2);
         } else {
             return BVH::build_leaf(geometry, index_to_geometry, bounds);
@@ -212,40 +214,40 @@ impl BVH {
     }
 
     fn flatten(root: BuildNode, size: usize) -> Vec<FlatNode> {
-        let mut tree = Vec::with_capacity(size);
-        Self::flatten_impl(root, &mut tree);
-
-        tree
-    }
-
-    fn flatten_impl(node: BuildNode, tree: &mut Vec<FlatNode>) -> usize {
-        let offset = tree.len();
-        match node.inner {
-            BuildNodeInner::Interior { left, right } => {
-                tree.push(FlatNode::interior(node.bounds, 0, 0));
-                let left_idx = Self::flatten_impl(*left, tree);
-                let right_idx = Self::flatten_impl(*right, tree);
-                match tree[offset].inner {
-                    FlatNodeInner::Interior {
-                        ref mut left,
-                        ref mut right,
-                        ..
-                    } => {
-                        *left = left_idx;
-                        *right = right_idx;
+        fn flatten_impl(node: BuildNode, tree: &mut Vec<FlatNode>) -> usize {
+            let offset = tree.len();
+            match node.inner {
+                BuildNodeInner::Interior { left, right } => {
+                    tree.push(FlatNode::interior(node.bounds, 0, 0));
+                    let left_idx = flatten_impl(*left, tree);
+                    let right_idx = flatten_impl(*right, tree);
+                    match tree[offset].inner {
+                        FlatNodeInner::Interior {
+                            ref mut left,
+                            ref mut right,
+                            ..
+                        } => {
+                            *left = left_idx;
+                            *right = right_idx;
+                        }
+                        _ => unreachable!("Node changed while initializing it?!"),
                     }
-                    _ => panic!("Node changed while initializing it?!"),
+                }
+                BuildNodeInner::Leaf {
+                    geometry_offset,
+                    num_primitives,
+                } => {
+                    tree.push(FlatNode::leaf(node.bounds, geometry_offset, num_primitives));
                 }
             }
-            BuildNodeInner::Leaf {
-                geometry_offset,
-                num_primitives,
-            } => {
-                tree.push(FlatNode::leaf(node.bounds, geometry_offset, num_primitives));
-            }
-        }
 
-        offset
+            offset
+        };
+
+        let mut tree = Vec::with_capacity(size);
+        flatten_impl(root, &mut tree);
+
+        tree
     }
 }
 
@@ -280,21 +282,6 @@ impl Intersect for BVH {
                             (left, None) => left,
                             (None, right) => right,
                         };
-
-                        // if let Some(left) = left {
-                        //     if let Some(right) = right {
-                        //         // Compare who is closest
-                        //         if left.t < right.t {
-                        //             return Some(left);
-                        //         } else {
-                        //             return Some(right);
-                        //         }
-                        //     } else {
-                        //         return Some(left);
-                        //     }
-                        // } else if right.is_some() {
-                        //     return right;
-                        // }
                     }
                     FlatNodeInner::Leaf {
                         geometry_offset,
@@ -316,13 +303,14 @@ impl Intersect for BVH {
                         return hit;
                     }
                 }
+            } else {
+                None
             }
-
-            None
         };
 
-        let node = self.tree.first().unwrap();
-        intersect(node, &self.tree, &self.geometry, ray, t_min, t_max)
+        self.tree
+            .first()
+            .and_then(|node| intersect(node, &self.tree, &self.geometry, ray, t_min, t_max))
     }
 
     fn has_intersection(&self, _ray: Ray, _t_min: f32, _t_max: f32) -> bool {
