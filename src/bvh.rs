@@ -4,7 +4,7 @@ use crate::{
 };
 use glam::Vec3;
 use rayon::prelude::*;
-use smallvec::*;
+
 
 #[derive(Clone, Copy, Debug)]
 pub enum Axis {
