@@ -17,7 +17,7 @@ image = { version = "0.23.9", default-features = false, features = ["png"] }
 glam = "0.9.4"
 rand = "0.7.3"
 rand_distr = "0.3.0"
-rand_xoshiro = "0.4.0"
+rand_xoshiro = "0.6.0"
 itertools = "0.10.0"
 smallvec = "1.6.1"
 
