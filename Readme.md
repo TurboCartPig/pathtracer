@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/TurboCartPig/pathtracer.svg?branch=master)](https://travis-ci.com/TurboCartPig/pathtracer)
+
 # Yet Another Path Tracer
 
 ### TL;DR
