@@ -15,7 +15,7 @@ rayon = "1.5.0"
 glutin = "0.26.0"
 image = { version = "0.23.12", default-features = false, features = ["png"] }
 glam = "0.9.4"
-rand = "0.7.3"
+rand = "0.8.3"
 rand_distr = "0.3.0"
 rand_xoshiro = "0.4.0"
 itertools = "0.10.0"
