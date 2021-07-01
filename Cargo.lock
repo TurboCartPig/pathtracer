@@ -444,9 +444,9 @@ dependencies = [
 
 [[package]]
 name = "glam"
-version = "0.9.4"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2273fdae3729e928d8f4f29aee7e9931d196ce0a565030b96d7e0cc4c02f01f"
+checksum = "7d01468a1d75c441afeb98adc0bcbd174ff59bd35a325c1da57ce7a53e04a5a3"
 
 [[package]]
 name = "glutin"
