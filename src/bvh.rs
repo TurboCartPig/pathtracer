@@ -87,7 +87,7 @@ impl BVH {
     }
 
     fn build(
-        geometry: &mut [GeometryInfo],
+        geometry: &mut [GeometryInfo<'_>],
         index_to_geometry: &mut Vec<usize>,
         total_nodes: &mut usize,
         split_threshold: usize,
@@ -169,7 +169,7 @@ impl BVH {
             // Partition the geometry into a half that fails the predicate, and a half that
             // satisfies it. Then return the index of the first element to satisfies the predicate
 
-            let func = |g: &GeometryInfo| {
+            let func = |g: &GeometryInfo<'_>| {
                 let b = ((g.center.axis(split_axis) - centroids.min.axis(split_axis))
                     / (centroids.max.axis(split_axis) - centroids.min.axis(split_axis))
                     * buckets.len() as f32) as usize;
@@ -203,7 +203,7 @@ impl BVH {
     }
 
     fn build_leaf(
-        geometry: &mut [GeometryInfo],
+        geometry: &mut [GeometryInfo<'_>],
         index_to_geometry: &mut Vec<usize>,
         bounds: AABB,
     ) -> BuildNode {
