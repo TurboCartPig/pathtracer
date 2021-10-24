@@ -11,7 +11,7 @@ pub struct Transform {
 
 #[derive(Clone)]
 pub enum Instance {
-    Reciver {
+    Receiver {
         primitive: Arc<dyn Intersect>,
         material: Arc<dyn Material>,
         transform: Transform,
@@ -20,12 +20,12 @@ pub enum Instance {
 }
 
 impl Instance {
-    pub fn reciver(
+    pub fn receiver(
         primitive: Arc<dyn Intersect>,
         material: Arc<dyn Material>,
         transform: Transform,
     ) -> Self {
-        Instance::Reciver {
+        Instance::Receiver {
             primitive,
             material,
             transform,
@@ -37,7 +37,7 @@ impl Instance {
 impl Intersect for Instance {
     fn intersection(&self, ray: Ray, t_min: f32, t_max: f32) -> Option<Hit> {
         match self {
-            Instance::Reciver {
+            Instance::Receiver {
                 primitive,
                 material,
                 transform,
@@ -58,7 +58,7 @@ impl Intersect for Instance {
 
     fn has_intersection(&self, ray: Ray, t_min: f32, t_max: f32) -> bool {
         match self {
-            Instance::Reciver {
+            Instance::Receiver {
                 primitive,
                 transform,
                 ..
@@ -75,7 +75,7 @@ impl Intersect for Instance {
 
     fn bounds(&self) -> Option<AABB> {
         match self {
-            Instance::Reciver {
+            Instance::Receiver {
                 primitive,
                 transform,
                 ..

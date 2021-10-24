@@ -5,7 +5,6 @@ use crate::{
 use glam::Vec3;
 use rayon::prelude::*;
 
-
 #[derive(Clone, Copy, Debug)]
 pub enum Axis {
     X,
@@ -31,7 +30,7 @@ impl GetAxis for Vec3 {
     }
 }
 
-/// A Bounding Volume Hirarchy
+/// A Bounding Volume Hierarchy
 pub struct BVH {
     /// The primitives that make up the scene
     geometry: Vec<Instance>,
@@ -50,7 +49,7 @@ impl BVH {
         // The indices are as seen from the nodes and the elements from the geometry
         let mut index_to_geometry = Vec::new();
         // Precompute build info about the geometry
-        let mut build_geomentry = geometry
+        let mut build_geometry = geometry
             .par_iter()
             .enumerate()
             .map(|(index, geom)| {
@@ -66,7 +65,7 @@ impl BVH {
             .collect::<Vec<_>>();
 
         let root = BVH::build(
-            &mut build_geomentry,
+            &mut build_geometry,
             &mut index_to_geometry,
             &mut total_nodes,
             split_threshold,
@@ -168,7 +167,7 @@ impl BVH {
         // Check if we should build an interior node based on cost and the split_threshold
         if geometry.len() > split_threshold || min_cost < geometry.len() as f32 {
             // Partition the geometry into a half that fails the predicate, and a half that
-            // satisfies it. Then return the index of the first element to satisfie the predicate
+            // satisfies it. Then return the index of the first element to satisfies the predicate
 
             let func = |g: &GeometryInfo| {
                 let b = ((g.center.axis(split_axis) - centroids.min.axis(split_axis))
@@ -242,7 +241,7 @@ impl BVH {
             }
 
             offset
-        };
+        }
 
         let mut tree = Vec::with_capacity(size);
         flatten_impl(root, &mut tree);
@@ -306,7 +305,7 @@ impl Intersect for BVH {
             } else {
                 None
             }
-        };
+        }
 
         self.tree
             .first()

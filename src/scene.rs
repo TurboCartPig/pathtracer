@@ -57,7 +57,7 @@ impl Materials {
     }
 }
 
-/// A Scene containing tracable objects and their materials.
+/// A Scene containing traceable objects and their materials.
 pub struct Scene {
     settings: SettingsConfig,
     camera: Camera,
@@ -100,7 +100,7 @@ impl Scene {
                 let mut pixel = Vec3::zero();
                 let mut ray_count = 0;
 
-                // Antialiasing via multisampling
+                // Anti-aliasing via multi-sampling
                 for _ in 0..self.settings.samples {
                     let u = (rng.gen::<f32>() + x as f32) / self.settings.width() as f32;
                     let v = (rng.gen::<f32>() + y as f32) / self.settings.height() as f32;
@@ -146,7 +146,7 @@ impl Scene {
             Ord::cmp(&a, &b)
         });
 
-        // Reinterperate the pixels into expected image format
+        // Reinterpret the pixels into expected image format
         let pixels: Vec<_> = pixels
             .into_iter()
             .flat_map(|(_, pixel)| {

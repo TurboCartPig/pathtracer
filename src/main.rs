@@ -93,7 +93,7 @@ fn random() -> Vec<Instance> {
     // The big sphere
     let material = Arc::new(Lambertian::new(vec3(0.5, 0.5, 0.5)));
     let primitive = Arc::new(Sphere::new(vec3(0.0, -1000.0, 0.0), 1000.0));
-    instances.push(Instance::reciver(primitive, material, transform));
+    instances.push(Instance::receiver(primitive, material, transform));
 
     let primitive = Arc::new(Sphere::new(Vec3::zero(), 0.2));
     for a in -12..12 {
@@ -126,22 +126,22 @@ fn random() -> Vec<Instance> {
                     translation: center,
                     ..Default::default()
                 };
-                instances.push(Instance::reciver(primitive.clone(), material, transform));
+                instances.push(Instance::receiver(primitive.clone(), material, transform));
             }
         }
     }
 
     let material = Arc::new(Lambertian::new(vec3(0.6, 0.2, 0.9)));
     let primitive = Arc::new(Sphere::new(vec3(-4.0, 1.0, 0.0), 1.0));
-    instances.push(Instance::reciver(primitive, material, transform));
+    instances.push(Instance::receiver(primitive, material, transform));
 
     let material = Arc::new(Dielectric::new(1.5));
     let primitive = Arc::new(Sphere::new(vec3(0.0, 1.0, 0.0), 1.0));
-    instances.push(Instance::reciver(primitive, material, transform));
+    instances.push(Instance::receiver(primitive, material, transform));
 
     let material = Arc::new(Metal::new(vec3(0.7, 0.6, 0.5), 0.0));
     let primitive = Arc::new(Sphere::new(vec3(4.0, 1.0, 0.0), 1.0));
-    instances.push(Instance::reciver(primitive, material, transform));
+    instances.push(Instance::receiver(primitive, material, transform));
 
     instances
 }
