@@ -12,18 +12,13 @@ lazy_static = "1.4.0"
 serde = { version = "1.0.123", features = ["derive"] }
 toml = "0.5.8"
 rayon = "1.5.0"
-glutin = "0.26.0"
-image = { version = "0.23.12", default-features = false, features = ["png"] }
+image = { version = "0.23.9", default-features = false, features = ["png"] }
 glam = "0.9.4"
 rand = "0.7.3"
 rand_distr = "0.3.0"
 rand_xoshiro = "0.4.0"
 itertools = "0.10.0"
 smallvec = "1.6.1"
-
-[build-dependencies]
-anyhow = "1.0.38"
-gl_generator = "0.14.0"
 
 [profile.dev]
 opt-level = 1

@@ -1,6 +1,5 @@
 mod bvh;
 mod camera;
-mod gl;
 mod material;
 mod primitives;
 mod ray;
@@ -9,12 +8,6 @@ mod scene;
 
 use crate::{bvh::*, material::*, primitives::*, ray::*, scene::*};
 use glam::{vec3, Vec3};
-// use glutin::{
-//     event::{DeviceEvent, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
-//     event_loop::{ControlFlow, EventLoop},
-//     window::WindowBuilder,
-//     ContextBuilder,
-// };
 use rand::prelude::*;
 use serde::Deserialize;
 use std::io::Read;
@@ -153,20 +146,6 @@ fn random() -> Vec<Instance> {
     instances
 }
 
-/// The user event given to glutin
-// pub enum PathtracerEvent {
-//     /// Signal that the pathtracer has made progress and that the window should be redrawn
-//     Redraw,
-// }
-
-// fn redraw(gl: &Gl) {
-//     unsafe {
-//         gl.ClearColor(1.0, 0.0, 1.0, 1.0);
-//         gl.Clear(gl::COLOR_BUFFER_BIT);
-//         gl.DrawArrays(gl::TRIANGLES, 0, 4);
-//     }
-// }
-
 /// Load pathtracer settings from a settings file
 fn load_settings() -> anyhow::Result<SettingsConfig> {
     let mut settings = std::fs::File::open("settings.toml")?;
@@ -186,157 +165,4 @@ fn main() {
     image
         .save("output.png")
         .expect("Failed to save output image");
-
-    // TODO: Fix opengl previewer
-    // *******************************************************************
-    // let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    // let event_loop = EventLoop::with_user_event();
-    // let context = ContextBuilder::new()
-    //     .with_gl(glutin::GlRequest::Latest)
-    //     .with_gl_profile(glutin::GlProfile::Core)
-    //     .build_windowed(
-    //         WindowBuilder::new()
-    //             .with_title("Pathtracer")
-    //             .with_inner_size(glutin::dpi::LogicalSize::new(1920.0, 1080.0)),
-    //         &event_loop,
-    //     )
-    //     .unwrap();
-
-    // let context = unsafe { context.make_current().unwrap() };
-    // let gl = Gl::load_with(|name| context.get_proc_address(name) as *const _);
-
-    // unsafe {
-    //     let mut tex = 0;
-    //     gl.GenTextures(1, &mut tex);
-    //     gl.BindTexture(gl::TEXTURE_2D, tex);
-    //     gl.TexImage2D(
-    //         gl::TEXTURE_2D,
-    //         0,
-    //         gl::RGB as i32,
-    //         WIDTH as i32,
-    //         HEIGHT as i32,
-    //         0,
-    //         gl::RGB,
-    //         gl::UNSIGNED_BYTE,
-    //         image.as_ptr() as _,
-    //     );
-    //     gl.TexParameteri(
-    //         gl::TEXTURE_2D,
-    //         gl::TEXTURE_WRAP_S,
-    //         gl::CLAMP_TO_BORDER as i32,
-    //     );
-    //     gl.TexParameteri(
-    //         gl::TEXTURE_2D,
-    //         gl::TEXTURE_WRAP_T,
-    //         gl::CLAMP_TO_BORDER as i32,
-    //     );
-    //     gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
-    //     gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-
-    //     let mut vao = 0;
-    //     gl.GenVertexArrays(1, &mut vao);
-    //     gl.BindVertexArray(vao);
-
-    //     let vertices = vec![-1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
-
-    //     let mut vert_buffer = 0;
-    //     gl.GenBuffers(1, &mut vert_buffer);
-    //     gl.BindBuffer(gl::ARRAY_BUFFER, vert_buffer);
-    //     gl.BufferData(
-    //         gl::ARRAY_BUFFER,
-    //         (std::mem::size_of::<f32>() * vertices.len()) as isize,
-    //         vertices.as_ptr() as _,
-    //         gl::STATIC_DRAW,
-    //     );
-
-    //     let load = |name: std::path::PathBuf| {
-    //         use std::io::Read;
-
-    //         let file = std::fs::File::open(name.clone())
-    //             .expect(&format!("Failed to open file: {:?}", name));
-    //         let mut reader = std::io::BufReader::new(file);
-    //         let mut buffer = Vec::new();
-    //         reader.read(&mut buffer).unwrap();
-
-    //         std::ffi::CString::new(buffer).unwrap()
-    //     };
-
-    //     let vert_shader = gl.CreateShader(gl::VERTEX_SHADER);
-    //     let vert_source = load(root_dir.join("resources\\shaders\\present.vert"));
-    //     gl.ShaderSource(vert_shader, 1, &vert_source.as_ptr(), std::ptr::null());
-    //     gl.CompileShader(vert_shader);
-
-    //     let mut status = 0;
-    //     gl.GetShaderiv(vert_shader, gl::COMPILE_STATUS, &mut status);
-    //     println!("Shader compilation status: {}", status);
-
-    //     let frag_shader = gl.CreateShader(gl::FRAGMENT_SHADER);
-    //     let frag_source = load(root_dir.join("resources\\shaders\\present.frag"));
-    //     gl.ShaderSource(frag_shader, 1, &frag_source.as_ptr(), std::ptr::null());
-    //     gl.CompileShader(frag_shader);
-
-    //     let mut status = 0;
-    //     gl.GetShaderiv(frag_shader, gl::COMPILE_STATUS, &mut status);
-    //     println!("Shader compilation status: {}", status);
-
-    //     let shader_program = gl.CreateProgram();
-    //     gl.AttachShader(shader_program, vert_shader);
-    //     gl.AttachShader(shader_program, frag_shader);
-
-    //     gl.BindFragDataLocation(shader_program, 0, "color".as_ptr() as _);
-
-    //     gl.LinkProgram(shader_program);
-    //     gl.UseProgram(shader_program);
-
-    //     let pos_attrib = gl.GetAttribLocation(shader_program, b"position\0".as_ptr() as _) as u32;
-    //     gl.EnableVertexAttribArray(pos_attrib);
-    //     gl.VertexAttribPointer(
-    //         pos_attrib,
-    //         2,
-    //         gl::FLOAT,
-    //         gl::FALSE,
-    //         2 * std::mem::size_of::<f32>() as i32,
-    //         std::ptr::null(),
-    //     );
-
-    //     // let tex_coord_attrib = gl.GetAttribLocation(shader_program, "tex_coord".as_ptr() as _) as u32;
-    //     // gl.VertexAttribPointer(tex_coord_attrib, 3, gl::UNSIGNED_BYTE, gl::FALSE, 4 * std::mem::size_of::<f32>() as i32, (2 * std::mem::size_of::<f32>() as i32) as _);
-
-    //     redraw(&gl);
-    // }
-
-    // Main event loop
-    // event_loop.run(move |event: Event<PathtracerEvent>, _, control_flow| {
-    //     match event {
-    //         Event::LoopDestroyed => return,
-    //         Event::WindowEvent { ref event, .. } => match event {
-    //             // WindowEvent::Resized(_size) => {
-    //             //     redraw(&gl);
-    //             // },
-    //             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-    //             _ => (),
-    //         },
-    //         Event::DeviceEvent { ref event, .. } => match event {
-    //             DeviceEvent::Key(KeyboardInput {
-    //                 virtual_keycode: Some(VirtualKeyCode::S),
-    //                 ..
-    //             }) => {
-    //                 println!("Saving rendered image...");
-    //                 save_image(&image);
-    //             }
-    //             _ => (),
-    //         },
-    //         Event::RedrawRequested(_) => {
-    //             redraw(&gl);
-    //             context.swap_buffers().unwrap();
-    //             println!("Hei");
-    //         }
-    //         // Event::UserEvent(ref event) => match event {
-    //         //     PathtracerEvent::Redraw => {
-    //         //         redraw(&gl);
-    //         //     },
-    //         // },
-    //         _ => (),
-    //     }
-    // });
 }
